@@ -99,6 +99,9 @@ const discs = [
   // Video individual que compartiste:
   {type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
 
+  // Playlist / álbum de YouTube Music que acabás de compartir:
+  {type:'playlist', id:'OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA', title:'Álbum de YouTube Music', artist:''},
+
   // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
   // {type:'video', id:'XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista'},
   // {type:'playlist', id:'PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas'}
@@ -120,7 +123,8 @@ function parseYT(raw){
   if(vid) return {type:'video', id:vid[1]};
 
   // También acepta pegar directamente el ID, sin la URL.
-  if(/^(PL|UU|FL|OL|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
+  // Incluye OLAK5uy: identificador usado por álbumes/listas de YouTube Music.
+  if(/^(PL|UU|FL|OL|OLAK5uy|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
   if(/^[A-Za-z0-9_-]{11}$/.test(raw)) return {type:'video', id:raw};
 
   return null;
