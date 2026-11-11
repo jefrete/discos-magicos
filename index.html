@@ -96,20 +96,18 @@ input[type=text]:focus{border-color:var(--neon)}
     pegando directamente el enlace de YouTube.
 */
 const discs = [
-  // Video individual:
-  //{type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
+  // Video individual que compartiste:
+  {type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
 
-  // Playlist: podés pegar la URL completa directamente en id.
-  // Aunque escribas type:'video', el código detecta que es una playlist y lo corrige.
-  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=FO0ck5pd3rO-0xFZ', title:'Jueves', artist:'Cuarteto de Nos', cover:'covers/jueves-vintage.png'},
-  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA&si=Nt3TmqFOH-cjILfY', title:'Puertas', artist:'Cuarteto de Nos', cover:'covers/puertas-vintage.png'},
-
-  //{type:'video', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=FO0ck5pd3rO-0xFZ', title:'Jueves', artist:'El Cuarteto de Nos'},
-
+  // Playlist / álbum: si existe este archivo, se usa como carátula propia.
+  // Debe estar en la carpeta "covers", al mismo nivel que index.html.
+  // Si falta o el nombre/ruta no coincide, aparece una carátula retro generada automáticamente.
+  {type:'playlist', id:'OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA', title:'Puertas', artist:'', cover:'covers/puertas-vintage.png'},
 
   // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
-  // {type:'video', id:'https://www.youtube.com/watch?v=XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista'},
-  // {type:'playlist', id:'https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas'}
+  // Para asignar una carátula propia, agregá cover:'covers/nombre-imagen.jpg' al objeto.
+  // {type:'video', id:'XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista', cover:'covers/mi-portada.jpg'},
+  // {type:'playlist', id:'PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas', cover:'covers/mi-portada.jpg'}
 ];
 let current = -1;
 
@@ -128,23 +126,12 @@ function parseYT(raw){
   if(vid) return {type:'video', id:vid[1]};
 
   // También acepta pegar directamente el ID, sin la URL.
-  if(/^(PL|UU|FL|OL|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
+  // Incluye OLAK5uy: identificador usado por álbumes/listas de YouTube Music.
+  if(/^(PL|UU|FL|OL|OLAK5uy|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
   if(/^[A-Za-z0-9_-]{11}$/.test(raw)) return {type:'video', id:raw};
 
   return null;
 }
-
-// Normaliza los datos de la estantería al iniciar:
-// - Acepta un ID corto o una URL completa en la propiedad id.
-// - Si encuentra list=, convierte el elemento en playlist automáticamente.
-// - Si encuentra un video, guarda solamente su ID de 11 caracteres.
-discs.forEach(d => {
-  const parsed = parseYT(d.id);
-  if(parsed){
-    d.id = parsed.id;
-    d.type = parsed.type;
-  }
-});
 
 /* ============ YOUTUBE: PLAYER ============ */
 let player = null, playing = false, pending = null;
@@ -188,19 +175,101 @@ document.head.appendChild(ytScript);
 /* ============ CARÁTULAS PROCEDURALES ============ */
 function hash(s){ let h = 0; for(let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
 function genCover(title, seed){
-  const c = document.createElement('canvas'); c.width = c.height = 512;
-  const x = c.getContext('2d'), h = hash(seed) % 360;
-  const g = x.createLinearGradient(0, 0, 512, 512);
-  g.addColorStop(0, `hsl(${h},70%,46%)`); g.addColorStop(1, `hsl(${(h + 60) % 360},75%,16%)`);
-  x.fillStyle = g; x.fillRect(0, 0, 512, 512);
-  x.globalAlpha = .18; x.strokeStyle = '#fff'; x.lineWidth = 14;
-  for(let i = 0; i < 6; i++){ x.beginPath(); x.arc(256, 256, 40 + i * 42, 0, 7); x.stroke(); }
-  x.globalAlpha = 1; x.fillStyle = '#fff'; x.font = '700 46px system-ui,sans-serif'; x.textAlign = 'center';
-  const words = String(title).split(' '), lines = []; let ln = '';
-  words.forEach(w => { const t = ln ? ln + ' ' + w : w; if(x.measureText(t).width > 400 && ln){ lines.push(ln); ln = w; } else ln = t; });
-  lines.push(ln);
-  const L = lines.slice(0, 4), y0 = 256 - (L.length - 1) * 28;
-  L.forEach((t, i) => x.fillText(t, 256, y0 + i * 56 + 14));
+  // Carátula retro original: paletas cálidas, geometría mid-century y desgaste de impresión.
+  const c = document.createElement('canvas'); c.width = c.height = 640;
+  const x = c.getContext('2d');
+  const palettes = [
+    ['#f2d9a0','#d65b35','#315d59','#e8a83e','#f4ead3'],
+    ['#e8b84e','#b74632','#3c5960','#f1dfb9','#6f7549'],
+    ['#d6e0c7','#e06b43','#e9b94e','#405b50','#f4e7c8'],
+    ['#e7c5a5','#b94c3b','#e5a83e','#456b70','#f5e9d2'],
+    ['#f0d58c','#59746b','#d45a3f','#d99a38','#f6e8c9']
+  ];
+  const h = hash(seed || title);
+  const p = palettes[h % palettes.length];
+  const bg = p[(h + 0) % p.length], ink = p[(h + 1) % p.length];
+  const accent = p[(h + 2) % p.length], accent2 = p[(h + 3) % p.length];
+  x.fillStyle = bg; x.fillRect(0,0,640,640);
+
+  // Fondo con bandas diagonales suaves.
+  x.save(); x.globalAlpha = .22;
+  for(let i = -640; i < 1280; i += 54){
+    x.fillStyle = i % 108 ? ink : accent2;
+    x.fillRect(i, 0, 22, 640);
+  }
+  x.restore();
+
+  // Motivo geométrico distinto según el identificador.
+  const motif = h % 4;
+  x.save(); x.translate(320, 285);
+  if(motif === 0){
+    for(let i = 0; i < 9; i++){
+      x.beginPath(); x.arc(0,0,48 + i*27, Math.PI*.12, Math.PI*1.88);
+      x.strokeStyle = i % 2 ? accent : accent2; x.lineWidth = 17; x.stroke();
+    }
+  } else if(motif === 1){
+    for(let i = 0; i < 7; i++){
+      x.fillStyle = i % 2 ? accent : accent2;
+      x.beginPath(); x.arc(0,0,230-i*28,0,Math.PI*2); x.fill();
+    }
+    x.fillStyle = bg; x.beginPath(); x.arc(0,0,58,0,Math.PI*2); x.fill();
+  } else if(motif === 2){
+    for(let i = 0; i < 8; i++){
+      x.save(); x.rotate(i*Math.PI/4);
+      x.fillStyle = i % 2 ? accent : accent2;
+      x.fillRect(-14,-235,28,470); x.restore();
+    }
+    x.fillStyle = ink; x.beginPath(); x.arc(0,0,72,0,Math.PI*2); x.fill();
+  } else {
+    for(let i = 0; i < 6; i++){
+      x.fillStyle = i % 2 ? accent : accent2;
+      x.beginPath(); x.arc(-110+i*44, 0, 115, 0, Math.PI*2); x.fill();
+    }
+  }
+  x.restore();
+
+  // Marco editorial y pequeños detalles de imprenta.
+  x.strokeStyle = 'rgba(49,45,35,.55)'; x.lineWidth = 3;
+  x.strokeRect(22,22,596,596);
+  x.strokeStyle = 'rgba(255,248,225,.72)'; x.lineWidth = 2;
+  x.strokeRect(31,31,578,578);
+
+  // Banda inferior para que el título siempre tenga contraste.
+  x.fillStyle = 'rgba(35,35,29,.82)'; x.fillRect(0,465,640,175);
+  x.fillStyle = '#f7ebcf'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = '700 18px Georgia, serif'; x.fillText('EDICIÓN DE VINILO',320,493);
+
+  const words = String(title || 'SIN TÍTULO').toUpperCase().split(/\s+/);
+  let lines = [], line = '';
+  x.font = '900 43px Georgia, serif';
+  words.forEach(word => {
+    const test = line ? line + ' ' + word : word;
+    if(x.measureText(test).width > 570 && line){ lines.push(line); line = word; }
+    else line = test;
+  });
+  if(line) lines.push(line);
+  lines = lines.slice(0,2);
+  const titleY = lines.length === 1 ? 555 : 541;
+  lines.forEach((t,i) => {
+    x.fillStyle = '#f7ebcf'; x.fillText(t,320,titleY+i*48);
+  });
+
+  // Grano, rayitas y pequeñas pérdidas de tinta: efecto de impresión antigua.
+  let rand = h || 1;
+  const random = () => { rand = (rand * 16807) % 2147483647; return rand / 2147483647; };
+  x.save(); x.globalAlpha = .12;
+  for(let i = 0; i < 9500; i++){
+    x.fillStyle = random() > .5 ? '#fff8df' : '#34291f';
+    const size = random() * 2.2 + .4;
+    x.fillRect(random()*640, random()*640, size, size);
+  }
+  x.restore();
+  x.save(); x.globalAlpha = .18; x.strokeStyle = '#34291f'; x.lineWidth = 1;
+  for(let i = 0; i < 22; i++){
+    const px = random()*640, py = random()*640;
+    x.beginPath(); x.moveTo(px,py); x.lineTo(px+random()*24,py+random()*5); x.stroke();
+  }
+  x.restore();
   return c;
 }
 
@@ -213,12 +282,46 @@ function renderShelf(){
     const b = document.createElement('button');
     b.className = 'disc' + (i === current ? ' active' : '');
     b.title = d.title;
-    const img = new Image(); img.alt = d.title;
-    const fb = () => { img.onerror = null; img.src = genCover(d.title, d.id).toDataURL(); };
-    img.onerror = fb;
-    img.src = thumb(d) || genCover(d.title, d.id).toDataURL();
+    const img = new Image();
+    img.alt = d.title;
+    img.loading = 'lazy';
+
+    // Orden de carga:
+    // 1) carátula propia indicada en d.cover;
+    // 2) miniatura oficial de YouTube para videos;
+    // 3) carátula retro generada localmente.
+    let fallbackUsed = false;
+    const showRetroCover = () => {
+      if(fallbackUsed) return;
+      fallbackUsed = true;
+      img.onerror = null;
+      img.src = genCover(d.title, d.id).toDataURL('image/png');
+    };
+    const tryYoutubeOrRetro = () => {
+      if(d.type === 'video' && !fallbackUsed){
+        img.onerror = showRetroCover;
+        img.src = thumb(d);
+      } else {
+        showRetroCover();
+      }
+    };
+    img.onerror = () => {
+      if(d.cover){
+        d.cover = null; // evita insistir con una ruta propia que no existe
+        tryYoutubeOrRetro();
+      } else {
+        showRetroCover();
+      }
+    };
+    if(d.cover) img.src = d.cover;
+    else if(d.type === 'video') tryYoutubeOrRetro();
+    else showRetroCover();
+
     b.appendChild(img);
-    if(d.type === 'playlist'){ const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'PLAYLIST'; b.appendChild(t); }
+    if(d.type === 'playlist'){
+      const t = document.createElement('span');
+      t.className = 'tag'; t.textContent = 'PLAYLIST'; b.appendChild(t);
+    }
     const cap = document.createElement('span'); cap.className = 'cap';
     cap.innerHTML = `<b>${esc(d.title)}</b><small>${esc(d.artist || '')}</small>`;
     b.appendChild(cap);
@@ -393,17 +496,30 @@ function setCover(d){
   const apply = (t, crop) => {
     if(token !== coverToken){ t.dispose(); return; }
     t.encoding = THREE.sRGBEncoding;
-    if(crop){ t.repeat.set(0.5625, 1); t.offset.set(0.21875, 0); } // recorte cuadrado de la miniatura 16:9
+    if(crop){ t.repeat.set(0.5625, 1); t.offset.set(0.21875, 0); }
     if(coverTex) coverTex.dispose();
     coverTex = t;
     if(refs.labelMat){ refs.labelMat.map = t; refs.labelMat.needsUpdate = true; }
   };
+
+  // La etiqueta del vinilo usa exactamente la misma prioridad que la estantería.
   const fallback = () => apply(cvTex(genCover(d.title, d.id), true), false);
-  if(d.type === 'video'){
-    const loader = new THREE.TextureLoader();
-    loader.setCrossOrigin('anonymous');
-    loader.load(thumb(d), t => apply(t, true), undefined, fallback);
-  } else fallback();
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+
+  const loadYoutubeThumb = () => {
+    if(d.type === 'video'){
+      loader.load(thumb(d), t => apply(t, true), undefined, fallback);
+    } else {
+      fallback();
+    }
+  };
+
+  if(d.cover){
+    loader.load(d.cover, t => apply(t, false), undefined, loadYoutubeThumb);
+  } else {
+    loadYoutubeThumb();
+  }
 }
 
 /* ---------- construcción de piezas ---------- */
