@@ -97,11 +97,15 @@ input[type=text]:focus{border-color:var(--neon)}
 */
 const discs = [
   // Video individual:
-  {type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
+  //{type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
 
   // Playlist: podés pegar la URL completa directamente en id.
   // Aunque escribas type:'video', el código detecta que es una playlist y lo corrige.
-  {type:'video', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=FO0ck5pd3rO-0xFZ', title:'Jueves', artist:'El Cuarteto de Nos'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=FO0ck5pd3rO-0xFZ', title:'Jueves', artist:'Cuarteto de Nos', cover:'covers/jueves-vintage.png'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA&si=Nt3TmqFOH-cjILfY', title:'Puertas', artist:'Cuarteto de Nos', cover:'covers/puertas-vintage.png'},
+
+  //{type:'video', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=FO0ck5pd3rO-0xFZ', title:'Jueves', artist:'El Cuarteto de Nos'},
+
 
   // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
   // {type:'video', id:'https://www.youtube.com/watch?v=XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista'},
