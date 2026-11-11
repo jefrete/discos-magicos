@@ -81,10 +81,27 @@ input[type=text]:focus{border-color:var(--neon)}
 (() => {
 'use strict';
 
-/* ============ DATOS ============ */
-const discs = [
-  {type:'video', id:'dQw4w9WgXcQ', title:'Never Gonna Give You Up', artist:'Rick Astley'},
+/* ============ DATOS: TU ESTANTERÍA ============ */
+/*
+  Para agregar una canción individual:
+  {type:'video', id:'ID_DEL_VIDEO', title:'Nombre de la canción', artist:'Artista'}
 
+  Para agregar una playlist:
+  {type:'playlist', id:'ID_DE_LA_PLAYLIST', title:'Nombre de la lista', artist:'Artista o descripción'}
+
+  IMPORTANTE:
+  - El ID de un video es el código de 11 caracteres que aparece en su URL.
+  - El ID de una playlist aparece después de list= en su URL.
+  - También podés agregar canciones y playlists desde el campo de la página,
+    pegando directamente el enlace de YouTube.
+*/
+const discs = [
+  // Video individual que compartiste:
+  {type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
+
+  // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
+  // {type:'video', id:'XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista'},
+  // {type:'playlist', id:'PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas'}
 ];
 let current = -1;
 
@@ -92,12 +109,20 @@ let current = -1;
 function parseYT(raw){
   if(!raw) return null;
   raw = raw.trim();
-  const vid  = raw.match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);
+
+  // Si el enlace contiene list=, priorizamos la playlist.
+  // Esto también permite pegar enlaces de videos que pertenecen a una lista.
   const list = raw.match(/[?&]list=([A-Za-z0-9_-]+)/);
-  if(vid)  return {type:'video', id:vid[1]};
   if(list) return {type:'playlist', id:list[1]};
-  if(/^(PL|UU|FL|OL|LL)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
+
+  // Enlaces de videos: youtube.com/watch, youtu.be, shorts, embed y live.
+  const vid = raw.match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);
+  if(vid) return {type:'video', id:vid[1]};
+
+  // También acepta pegar directamente el ID, sin la URL.
+  if(/^(PL|UU|FL|OL|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
   if(/^[A-Za-z0-9_-]{11}$/.test(raw)) return {type:'video', id:raw};
+
   return null;
 }
 
@@ -681,6 +706,7 @@ btnSkin.addEventListener('click', () => {
   document.getElementById('skinLbl').textContent = SKINS[skinIdx];
   if(refs.skinMat){ refs.skinMat.map = getSkin(skinIdx); refs.skinMat.needsUpdate = true; }
 });
+// Permite sumar una canción individual o una playlist pegando su enlace.
 document.getElementById('addf').addEventListener('submit', async e => {
   e.preventDefault();
   const inp = document.getElementById('link');
