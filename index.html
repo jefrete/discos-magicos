@@ -96,17 +96,16 @@ input[type=text]:focus{border-color:var(--neon)}
     pegando directamente el enlace de YouTube.
 */
 const discs = [
-  // Video individual que compartiste:
-  {type:'video', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=FO0ck5pd3rO-0xFZ', title:'Jueves', artist:'El Cuarteto de Nos', cover:'covers/jueves-vintage.png'},
+  // Video individual:
+  {type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
 
-  // Playlist / álbum: usa primero la carátula propia guardada en el repositorio.
-  // La ruta es relativa a index.html: carpeta covers / archivo puertas-vintage.png.
-  {type:'playlist', id:'OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA', title:'Puertas', artist:'', cover:'covers/puertas-vintage.png'},
+  // Playlist: podés pegar la URL completa directamente en id.
+  // Aunque escribas type:'video', el código detecta que es una playlist y lo corrige.
+  {type:'video', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=FO0ck5pd3rO-0xFZ', title:'Jueves', artist:'El Cuarteto de Nos'},
 
   // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
-  // Para asignar una carátula propia, agregá cover:'covers/nombre-imagen.jpg' al objeto.
-  // {type:'video', id:'XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista', cover:'covers/mi-portada.jpg'},
-  // {type:'playlist', id:'PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas', cover:'covers/mi-portada.jpg'}
+  // {type:'video', id:'https://www.youtube.com/watch?v=XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista'},
+  // {type:'playlist', id:'https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas'}
 ];
 let current = -1;
 
@@ -125,12 +124,23 @@ function parseYT(raw){
   if(vid) return {type:'video', id:vid[1]};
 
   // También acepta pegar directamente el ID, sin la URL.
-  // Incluye OLAK5uy: identificador usado por álbumes/listas de YouTube Music.
-  if(/^(PL|UU|FL|OL|OLAK5uy|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
+  if(/^(PL|UU|FL|OL|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
   if(/^[A-Za-z0-9_-]{11}$/.test(raw)) return {type:'video', id:raw};
 
   return null;
 }
+
+// Normaliza los datos de la estantería al iniciar:
+// - Acepta un ID corto o una URL completa en la propiedad id.
+// - Si encuentra list=, convierte el elemento en playlist automáticamente.
+// - Si encuentra un video, guarda solamente su ID de 11 caracteres.
+discs.forEach(d => {
+  const parsed = parseYT(d.id);
+  if(parsed){
+    d.id = parsed.id;
+    d.type = parsed.type;
+  }
+});
 
 /* ============ YOUTUBE: PLAYER ============ */
 let player = null, playing = false, pending = null;
@@ -200,14 +210,9 @@ function renderShelf(){
     b.className = 'disc' + (i === current ? ' active' : '');
     b.title = d.title;
     const img = new Image(); img.alt = d.title;
-    // Prioridad: carátula propia del repositorio > miniatura de YouTube > portada procedural.
-    const procedural = () => { img.onerror = null; img.src = genCover(d.title, d.id).toDataURL(); };
-    const youtubeThumb = () => {
-      if(d.type === 'video') { img.onerror = procedural; img.src = thumb(d); }
-      else procedural();
-    };
-    img.onerror = () => { if(d.cover) youtubeThumb(); else procedural(); };
-    img.src = d.cover || thumb(d) || genCover(d.title, d.id).toDataURL();
+    const fb = () => { img.onerror = null; img.src = genCover(d.title, d.id).toDataURL(); };
+    img.onerror = fb;
+    img.src = thumb(d) || genCover(d.title, d.id).toDataURL();
     b.appendChild(img);
     if(d.type === 'playlist'){ const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'PLAYLIST'; b.appendChild(t); }
     const cap = document.createElement('span'); cap.className = 'cap';
@@ -389,16 +394,12 @@ function setCover(d){
     coverTex = t;
     if(refs.labelMat){ refs.labelMat.map = t; refs.labelMat.needsUpdate = true; }
   };
-  // En el disco 3D se respeta la misma prioridad que en la estantería.
   const fallback = () => apply(cvTex(genCover(d.title, d.id), true), false);
-  const loader = new THREE.TextureLoader();
-  loader.setCrossOrigin('anonymous');
-  const loadYoutubeThumb = () => {
-    if(d.type === 'video') loader.load(thumb(d), t => apply(t, true), undefined, fallback);
-    else fallback();
-  };
-  if(d.cover) loader.load(d.cover, t => apply(t, false), undefined, loadYoutubeThumb);
-  else loadYoutubeThumb();
+  if(d.type === 'video'){
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous');
+    loader.load(thumb(d), t => apply(t, true), undefined, fallback);
+  } else fallback();
 }
 
 /* ---------- construcción de piezas ---------- */
