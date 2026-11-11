@@ -99,12 +99,14 @@ const discs = [
   // Video individual que compartiste:
   {type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
 
-  // Playlist / álbum de YouTube Music que acabás de compartir:
-  {type:'playlist', id:'OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA', title:'Álbum de YouTube Music', artist:''},
+  // Playlist / álbum: usa primero la carátula propia guardada en el repositorio.
+  // La ruta es relativa a index.html: carpeta covers / archivo puertas-vintage.png.
+  {type:'playlist', id:'OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA', title:'Puertas', artist:'', cover:'covers/puertas-vintage.png'},
 
   // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
-  // {type:'video', id:'XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista'},
-  // {type:'playlist', id:'PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas'}
+  // Para asignar una carátula propia, agregá cover:'covers/nombre-imagen.jpg' al objeto.
+  // {type:'video', id:'XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista', cover:'covers/mi-portada.jpg'},
+  // {type:'playlist', id:'PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas', cover:'covers/mi-portada.jpg'}
 ];
 let current = -1;
 
@@ -198,9 +200,14 @@ function renderShelf(){
     b.className = 'disc' + (i === current ? ' active' : '');
     b.title = d.title;
     const img = new Image(); img.alt = d.title;
-    const fb = () => { img.onerror = null; img.src = genCover(d.title, d.id).toDataURL(); };
-    img.onerror = fb;
-    img.src = thumb(d) || genCover(d.title, d.id).toDataURL();
+    // Prioridad: carátula propia del repositorio > miniatura de YouTube > portada procedural.
+    const procedural = () => { img.onerror = null; img.src = genCover(d.title, d.id).toDataURL(); };
+    const youtubeThumb = () => {
+      if(d.type === 'video') { img.onerror = procedural; img.src = thumb(d); }
+      else procedural();
+    };
+    img.onerror = () => { if(d.cover) youtubeThumb(); else procedural(); };
+    img.src = d.cover || thumb(d) || genCover(d.title, d.id).toDataURL();
     b.appendChild(img);
     if(d.type === 'playlist'){ const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'PLAYLIST'; b.appendChild(t); }
     const cap = document.createElement('span'); cap.className = 'cap';
@@ -382,12 +389,16 @@ function setCover(d){
     coverTex = t;
     if(refs.labelMat){ refs.labelMat.map = t; refs.labelMat.needsUpdate = true; }
   };
+  // En el disco 3D se respeta la misma prioridad que en la estantería.
   const fallback = () => apply(cvTex(genCover(d.title, d.id), true), false);
-  if(d.type === 'video'){
-    const loader = new THREE.TextureLoader();
-    loader.setCrossOrigin('anonymous');
-    loader.load(thumb(d), t => apply(t, true), undefined, fallback);
-  } else fallback();
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+  const loadYoutubeThumb = () => {
+    if(d.type === 'video') loader.load(thumb(d), t => apply(t, true), undefined, fallback);
+    else fallback();
+  };
+  if(d.cover) loader.load(d.cover, t => apply(t, false), undefined, loadYoutubeThumb);
+  else loadYoutubeThumb();
 }
 
 /* ---------- construcción de piezas ---------- */
