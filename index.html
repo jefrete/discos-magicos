@@ -18,9 +18,11 @@ button{font:inherit;cursor:pointer}
 .btn:hover{border-color:var(--neon);box-shadow:0 0 0 1px var(--neon),0 0 18px rgba(255,45,120,.35);color:#fff}
 .btn small{color:var(--neon2);font-weight:500;margin-left:4px}
 
+/* BANNER: el alto crece con el ancho según el ratio de la imagen (ajustá 3 / 1 al ratio real de hero.jpg) */
 .hero{
   width:100vw;
-  height:clamp(105px, 17vw, 210px);
+  aspect-ratio: 3 / 1;
+  max-height: 60vh;
   min-height:105px;
   margin:0 0 0 calc(50% - 50vw);
   border:0;
@@ -46,8 +48,10 @@ h1 span{animation:flick 6s infinite}
 form{display:flex;gap:8px}
 input[type=text]{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
 input[type=text]:focus{border-color:var(--neon)}
-.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
-.disc{position:relative;aspect-ratio:1/1;min-width:200px;min-height:200px;border:2px solid transparent;border-radius:10px;padding:0;overflow:hidden;background:#111;box-shadow:0 8px 22px rgba(0,0,0,.55);transition:transform .2s,box-shadow .2s,border-color .2s}
+
+/* ESTANTERÍA: carátulas más grandes */
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.disc{position:relative;aspect-ratio:1/1;min-width:260px;min-height:260px;border:2px solid transparent;border-radius:10px;padding:0;overflow:hidden;background:#111;box-shadow:0 8px 22px rgba(0,0,0,.55);transition:transform .2s,box-shadow .2s,border-color .2s}
 .disc:hover{transform:translateY(-6px) rotate(-1deg);box-shadow:0 14px 30px rgba(255,45,120,.25)}
 .disc.active{border-color:var(--neon);box-shadow:0 0 0 1px var(--neon),0 0 26px rgba(255,45,120,.5)}
 .disc img{width:100%;height:100%;object-fit:cover;display:block}
@@ -55,6 +59,12 @@ input[type=text]:focus{border-color:var(--neon)}
 .cap b{display:block;font-size:13px;line-height:1.25}
 .cap small{color:#c9c7d6;font-size:11px}
 .tag{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);border:1px solid var(--neon);color:var(--neon2);font-size:10px;letter-spacing:.1em;border-radius:6px;padding:2px 6px}
+
+/* Carátulas aún más grandes en monitores anchos */
+@media(min-width:1400px){
+  .shelf{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .disc{min-width:300px;min-height:300px}
+}
 @media(max-width:900px){
   .top{grid-template-columns:1fr;height:auto}
   #stage{height:min(100vw,460px)}
@@ -822,7 +832,7 @@ function tick(){
     .then(() => buildScene()).catch(() => {});
 }
 
-const MALETA = [['Celeste',0x3fb6c9],['Rojo',0xc4202b],['Rosa',0xe0359a],['Lavanda',0xb59ae0],['Mostaza',0xe0a82e],['Verde',0x1f5a4a],['Marrón',0x7a2e22]];
+const MALETA = [['Celeste',0x3fb6c9],['Rojo',0xc4202b],['Rosa',0xe0359a],['Florcita',0x5a189a],['Mostaza',0xe0a82e],['Verde',0x1f5a4a],['Marrón',0x7a2e22]];
 const MIN = [['Negro',0x17181b],['Blanco',0xe8eaee]];
 const MODELS = [
   ['vintage','Retro 70s','v'],['maleta','Maleta','v'],['consola','Consola','v'],['gramofono','Gramófono','v'],['hifi','Hi-Fi','v'],
