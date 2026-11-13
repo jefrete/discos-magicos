@@ -110,26 +110,7 @@ input[type=text]:focus{border-color:var(--neon)}
 'use strict';
 
 /* ============ DATOS: TU ESTANTERÍA ============ */
-/*
-  Para agregar una canción individual:
-  {type:'video', id:'ID_DEL_VIDEO', title:'Nombre de la canción', artist:'Artista'}
-
-  Para agregar una playlist, pegá la URL completa o el ID:
-  {type:'playlist', id:'https://www.youtube.com/playlist?list=ID_DE_LA_PLAYLIST', title:'Nombre de la lista', artist:'Artista o descripción'}
-
-  IMPORTANTE:
-  - En id podés pegar la URL completa de YouTube o solamente el ID.
-  - El reproductor extrae automáticamente el ID desde el parámetro list=.
-  - También podés agregar canciones y playlists desde el campo de la página,
-    pegando directamente el enlace de YouTube.
-  - Para el banner superior, subí tu imagen al repositorio como hero.jpg.
-*/
 const discs = [
-  // Video individual que compartiste:
-  //{type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
-
-  // Playlist / álbum Jueves: ID limpio, sin URL, espacios ni parámetros extra.
-  //{type:'playlist', id:'url', title:'', artist:'', cover:'covers/raro-vintage.png'},
   {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_nkEIaphrM_U5JNFcxXq88usvBgLEiag5E&si=njG5m3aTAkqt95JE', title:'Raro', artist:'El Cuarteto de Nos', cover:'covers/raro-vintage.webp'},
   {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_lyCNeOpAQznJFIoCehTJqwgNF5gwa5RHU&si=uQepf1td2d6hni0l', title:'Bipolar', artist:'El Cuarteto de Nos', cover:'covers/bipolar-vintage.webp'},
   {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kygEpxzZ-hsVK-6XtONLL1hUnInI1l8Vg&si=pPwT4K6wKvx7JJNe', title:'Porfiado', artist:'El Cuarteto de Nos', cover:'covers/porfiado-vintage.webp'},
@@ -138,12 +119,6 @@ const discs = [
   {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=mWXS8rkmKBFMce12', title:'Jueves', artist:'El Cuarteto de Nos', cover:'covers/jueves-vintage.webp'},
   {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kDzZEIv2el62KiJVm2AChWlH8WNUAr1Xw&si=2228JXj40mHa_9Ih', title:'Lamina Once', artist:'El Cuarteto de Nos', cover:'covers/lamina-vintage.webp'},
   {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA&si=HIYjydJbZV3tquAd', title:'Puertas', artist:'El Cuarteto de Nos', cover:'covers/puertas-vintage.webp'},
-
-  
-  // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
-  // Para asignar una carátula propia, agregá cover:'covers/nombre-imagen.jpg' al objeto.
-  // {type:'video', id:'XXXXXXXXXXX', title:'Nombre de canción', artist:'Nombre del artista', cover:'covers/mi-portada.jpg'},
-  // {type:'playlist', id:'PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', title:'Mi playlist', artist:'Varios artistas', cover:'covers/mi-portada.jpg'}
 ];
 let current = -1;
 
@@ -151,21 +126,12 @@ let current = -1;
 function parseYT(raw){
   if(!raw) return null;
   raw = raw.trim();
-
-  // Si el enlace contiene list=, priorizamos la playlist.
-  // Esto también permite pegar enlaces de videos que pertenecen a una lista.
   const list = raw.match(/[?&]list=([A-Za-z0-9_-]+)/);
   if(list) return {type:'playlist', id:list[1]};
-
-  // Enlaces de videos: youtube.com/watch, youtu.be, shorts, embed y live.
   const vid = raw.match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);
   if(vid) return {type:'video', id:vid[1]};
-
-  // También acepta pegar directamente el ID, sin la URL.
-  // Incluye OLAK5uy: identificador usado por álbumes/listas de YouTube Music.
   if(/^(PL|UU|FL|OL|OLAK5uy|LL|RD)[A-Za-z0-9_-]{10,}$/.test(raw)) return {type:'playlist', id:raw};
   if(/^[A-Za-z0-9_-]{11}$/.test(raw)) return {type:'video', id:raw};
-
   return null;
 }
 
@@ -179,95 +145,40 @@ function setNow(icon, extra){
   nowEl.innerHTML = d ? `${icon} <b>${esc(d.title)}</b>${d.artist ? ' · ' + esc(d.artist) : ''}${extra ? ' — ' + esc(extra) : ''}` : `${icon} ${esc(extra || '')}`;
 }
 let playlistAdvanceTimer = null;
+function clearPlaylistAdvance(){ if(playlistAdvanceTimer){ clearTimeout(playlistAdvanceTimer); playlistAdvanceTimer = null; } }
 
-function clearPlaylistAdvance(){
-  if(playlistAdvanceTimer){
-    clearTimeout(playlistAdvanceTimer);
-    playlistAdvanceTimer = null;
-  }
-}
-
-// Algunos álbumes/listas pueden quedar detenidos al terminar el primer tema
-// dentro del reproductor integrado. Si YouTube no avanzó por sí solo,
-// comprobamos el estado y pedimos el siguiente elemento una sola vez.
 function checkPlaylistAdvance(ended = false){
   if(!player || current < 0 || discs[current].type !== 'playlist') return;
-
-  let duration = 0;
-  let currentTime = 0;
-  let playlist = [];
-  let playlistIndex = -1;
-
+  let duration = 0, currentTime = 0, playlist = [], playlistIndex = -1;
   try {
-    duration = player.getDuration();
-    currentTime = player.getCurrentTime();
-    playlist = player.getPlaylist() || [];
-    playlistIndex = player.getPlaylistIndex();
+    duration = player.getDuration(); currentTime = player.getCurrentTime();
+    playlist = player.getPlaylist() || []; playlistIndex = player.getPlaylistIndex();
   } catch(error){ return; }
-
-  // No hay otro tema disponible para avanzar.
   if(!playlist.length || playlistIndex < 0 || playlistIndex >= playlist.length - 1) return;
-
-  // Si fue una pausa manual a mitad del tema, no intervenimos.
   if(!ended && (!duration || currentTime < duration - 1.25)) return;
-
   clearPlaylistAdvance();
-  const selectedDisc = current;
-  const selectedIndex = playlistIndex;
-
+  const selectedDisc = current, selectedIndex = playlistIndex;
   playlistAdvanceTimer = setTimeout(() => {
     playlistAdvanceTimer = null;
     if(!player || current !== selectedDisc) return;
-
-    let state;
-    let index;
-    try {
-      state = player.getPlayerState();
-      index = player.getPlaylistIndex();
-    } catch(error){ return; }
-
-    // Si YouTube ya avanzó, no hacemos nada. Si sigue detenido en el mismo
-    // tema, solicitamos el siguiente elemento de la playlist.
-    if(index === selectedIndex && (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED)){
-      player.nextVideo();
-    }
+    let state, index;
+    try { state = player.getPlayerState(); index = player.getPlaylistIndex(); } catch(error){ return; }
+    if(index === selectedIndex && (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED)){ player.nextVideo(); }
   }, 900);
 }
 
-// Cada carga recibe un token: si el usuario cambia de disco mientras tanto,
-// las cargas y verificaciones anteriores se descartan.
 let loadToken = 0;
 function loadInPlayer(d, retry = 0){
   if(!player || !player.loadVideoById){ pending = d; return; }
-  clearPlaylistAdvance();
-  playing = false;
-
-  // Acepta tanto la URL completa de YouTube como el ID limpio.
+  clearPlaylistAdvance(); playing = false;
   const parsed = parseYT(d.id);
-  if(!parsed || parsed.type !== d.type){
-    setNow('⚠️', 'No se pudo reconocer el enlace de YouTube.');
-    return;
-  }
-
+  if(!parsed || parsed.type !== d.type){ setNow('⚠️', 'No se pudo reconocer el enlace de YouTube.'); return; }
   const token = ++loadToken;
   try { player.stopVideo(); } catch(e){}
-
-  // Pequeña pausa para que el reproductor suelte la lista anterior.
   setTimeout(() => {
     if(token !== loadToken) return;
-
-    if(d.type === 'video'){
-      player.loadVideoById({videoId:parsed.id, startSeconds:0});
-    } else {
-      player.loadPlaylist({
-        list:parsed.id,
-        listType:'playlist',
-        index:0,
-        startSeconds:0
-      });
-    }
-
-    // Verificación: si sigue cargada la lista/video anterior, reintenta (máx. 2 veces).
+    if(d.type === 'video'){ player.loadVideoById({videoId:parsed.id, startSeconds:0}); }
+    else { player.loadPlaylist({list:parsed.id, listType:'playlist', index:0, startSeconds:0}); }
     setTimeout(() => {
       if(token !== loadToken || retry >= 2) return;
       let url = '';
@@ -288,20 +199,10 @@ window.onYouTubeIframeAPIReady = () => {
       onStateChange: e => {
         playing = (e.data === YT.PlayerState.PLAYING);
         if(current < 0) return;
-
-        if(e.data === YT.PlayerState.PLAYING){
-          clearPlaylistAdvance();
-          setNow('▶');
-        } else if(e.data === YT.PlayerState.PAUSED){
-          setNow('⏸', 'pausa');
-          checkPlaylistAdvance(false);
-        } else if(e.data === YT.PlayerState.BUFFERING){
-          clearPlaylistAdvance();
-          setNow('⏳', 'cargando…');
-        } else if(e.data === YT.PlayerState.ENDED){
-          setNow('⏭', 'cargando siguiente tema…');
-          checkPlaylistAdvance(true);
-        }
+        if(e.data === YT.PlayerState.PLAYING){ clearPlaylistAdvance(); setNow('▶'); }
+        else if(e.data === YT.PlayerState.PAUSED){ setNow('⏸', 'pausa'); checkPlaylistAdvance(false); }
+        else if(e.data === YT.PlayerState.BUFFERING){ clearPlaylistAdvance(); setNow('⏳', 'cargando…'); }
+        else if(e.data === YT.PlayerState.ENDED){ setNow('⏭', 'cargando siguiente tema…'); checkPlaylistAdvance(true); }
       },
       onError: e => {
         playing = false;
@@ -343,7 +244,6 @@ function renderShelf(){
     b.className = 'disc' + (i === current ? ' active' : '');
     b.title = d.title;
     const img = new Image(); img.alt = d.title;
-    // Prioridad: carátula propia del repositorio > miniatura de YouTube > portada procedural.
     const procedural = () => { img.onerror = null; img.src = genCover(d.title, d.id).toDataURL(); };
     const youtubeThumb = () => {
       if(d.type === 'video') { img.onerror = procedural; img.src = thumb(d); }
@@ -381,8 +281,6 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = .9;
 
-/* ---- recursos compartidos (se crean una sola vez) ---- */
-// Entorno procedural: softboxes rosa/azul/blanco para que los metales y el vinilo tengan reflejos reales
 const pmrem = new THREE.PMREMGenerator(renderer);
 const envTex = (() => {
   const s = new THREE.Scene();
@@ -397,7 +295,6 @@ const envTex = (() => {
   panel(0xffe6f0, 3, 30, 6, 0, 6, -34);
   return pmrem.fromScene(s, .02).texture;
 })();
-// Fondo degradado
 const bgTex = (() => {
   const c = document.createElement('canvas'); c.width = 4; c.height = 512;
   const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 512);
@@ -405,7 +302,6 @@ const bgTex = (() => {
   x.fillStyle = g; x.fillRect(0, 0, 4, 512);
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
 })();
-// Piso circular que se desvanece hacia los bordes
 const floorAlpha = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 512;
   const x = c.getContext('2d'), g = x.createRadialGradient(256, 256, 40, 256, 256, 256);
@@ -413,7 +309,6 @@ const floorAlpha = (() => {
   x.fillStyle = g; x.fillRect(0, 0, 512, 512);
   return new THREE.CanvasTexture(c);
 })();
-// Halo rosa con anillos sobre el piso
 const glowTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 1024;
   const x = c.getContext('2d'), g = x.createRadialGradient(512, 512, 0, 512, 512, 512);
@@ -424,7 +319,6 @@ const glowTex = (() => {
   [.44, .5, .74, .9].forEach((k, i) => { x.strokeStyle = `rgba(255,${90 + i * 30},150,${.55 - i * .1})`; x.beginPath(); x.arc(512, 512, 512 * k, 0, 7); x.stroke(); });
   return new THREE.CanvasTexture(c);
 })();
-// Sprite suave para las partículas
 const spriteTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -433,10 +327,21 @@ const spriteTex = (() => {
   return new THREE.CanvasTexture(c);
 })();
 
+/* ---------- TEXTURA PANA (RAYITAS) ---------- */
+function panaTex(hexColor){
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  x.fillStyle = hexColor; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = 'rgba(0,0,0,.18)'; x.lineWidth = 1;
+  for(let i = 0; i < 256; i += 3){ x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 256); x.stroke(); }
+  x.strokeStyle = 'rgba(255,255,255,.08)';
+  for(let i = 1; i < 256; i += 3){ x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 256); x.stroke(); }
+  return cvTex(c);
+}
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
 const camTarget = new THREE.Vector3(0, 1, 0);
-// Órbita: theta (giro), phi (inclinación desde la vertical), r (distancia)
 const DEF = {3:{theta:.554, phi:1.06, r:14.2}, 2:{theta:0, phi:.01, r:14.5}};
 const orbit = Object.assign({}, DEF[3]);
 let viewK = 1, viewMode = 3, model = 'vintage', skinIdx = 0;
@@ -528,12 +433,11 @@ function setCover(d){
   const apply = (t, crop) => {
     if(token !== coverToken){ t.dispose(); return; }
     t.encoding = THREE.sRGBEncoding;
-    if(crop){ t.repeat.set(0.5625, 1); t.offset.set(0.21875, 0); } // recorte cuadrado de la miniatura 16:9
+    if(crop){ t.repeat.set(0.5625, 1); t.offset.set(0.21875, 0); }
     if(coverTex) coverTex.dispose();
     coverTex = t;
     if(refs.labelMat){ refs.labelMat.map = t; refs.labelMat.needsUpdate = true; }
   };
-  // En el disco 3D se respeta la misma prioridad que en la estantería.
   const fallback = () => apply(cvTex(genCover(d.title, d.id), true), false);
   const loader = new THREE.TextureLoader();
   loader.setCrossOrigin('anonymous');
@@ -559,7 +463,6 @@ function labelPlane(text, w, h, color){
 
 function makeSpin(cx, cz, deckY, R, style){
   const g = new THREE.Group(); g.position.set(cx, deckY, cz);
-  // plato
   const pc = document.createElement('canvas'); pc.width = pc.height = 1024;
   const x = pc.getContext('2d');
   x.fillStyle = style === 'modern' ? '#b4bac3' : '#8d939b'; x.fillRect(0, 0, 1024, 1024);
@@ -578,7 +481,6 @@ function makeSpin(cx, cz, deckY, R, style){
   plat.position.y = .07; g.add(plat);
   const mat = new THREE.Mesh(new THREE.CylinderGeometry(1.78, 1.78, .03, 64), M(0x17171a, {roughness:.9}));
   mat.position.y = .155; g.add(mat);
-  // vinilo
   const gc = document.createElement('canvas'); gc.width = gc.height = 1024;
   const y = gc.getContext('2d');
   y.fillStyle = '#0b0b0d'; y.fillRect(0, 0, 1024, 1024);
@@ -623,7 +525,6 @@ function makeArm(len, style, col){
   return g;
 }
 
-// coloca brazo, columna y soporte de reposo; calcula ángulos
 function mountArm(P, T, len, style, col, deckTop, recordTop){
   const dx = T.x - P.x, dz = T.z - P.z;
   const L = Math.hypot(dx, dz);
@@ -636,7 +537,6 @@ function mountArm(P, T, len, style, col, deckTop, recordTop){
   const base = new THREE.Mesh(new THREE.CylinderGeometry(.4, .46, .12, 32), baseM); base.position.set(P.x, deckTop + .06, P.z); scene.add(base);
   const colH = armY + lift - .1 - deckTop;
   const col2 = new THREE.Mesh(new THREE.CylinderGeometry(.11, .14, colH, 20), baseM); col2.position.set(P.x, deckTop + colH / 2, P.z); scene.add(col2);
-  // soporte de reposo
   const rx = P.x + Math.sin(rest) * L, rz = P.z + Math.cos(rest) * L;
   const postH = armY + lift - .16 - deckTop;
   const post = new THREE.Mesh(new THREE.CylinderGeometry(.07, .09, postH, 16), baseM); post.position.set(rx, deckTop + postH / 2, rz); scene.add(post);
@@ -652,20 +552,15 @@ function buildVintage(){
   const rim = new THREE.Mesh(new THREE.BoxGeometry(7.3, .06, 5.7), M(0xd6d9de, {metalness:.9, roughness:.2})); rim.position.y = 1.2; scene.add(rim);
   const deck = new THREE.Mesh(new THREE.BoxGeometry(6.8, .08, 5.2), M(0x1c1c20, {roughness:.6})); deck.position.y = 1.24; scene.add(deck);
   const deckTop = 1.28;
-  // tapa abierta
   const lidP = new THREE.Group(); lidP.position.set(0, 1.2, -2.8); lidP.rotation.x = -1.75; scene.add(lidP);
   const lid = new THREE.Mesh(new THREE.BoxGeometry(7.2, .18, 5.6), skinMat); lid.position.set(0, .09, 2.8); lidP.add(lid);
-  const cc = document.createElement('canvas'); cc.width = cc.height = 256;
-  const cx2 = cc.getContext('2d'); cx2.fillStyle = '#d9c9a3'; cx2.fillRect(0, 0, 256, 256);
-  cx2.fillStyle = 'rgba(80,60,30,.25)'; for(let i = 0; i < 256; i += 8) for(let j = 0; j < 256; j += 8) cx2.fillRect(i + (j / 8 % 2) * 4, j, 2, 2);
-  const inner = new THREE.Mesh(new THREE.PlaneGeometry(6.9, 5.3), M(0xffffff, {map:cvTex(cc), roughness:.95, metalness:0}));
+  // Pana roja con textura
+  const inner = new THREE.Mesh(new THREE.PlaneGeometry(6.9, 5.3), M(0xffffff, {map: panaTex('#d11224'), roughness:.95, metalness:0}));
   inner.rotation.x = Math.PI / 2; inner.position.set(0, -.012, 2.8); lidP.add(inner);
   const hingeM = M(0xd6d9de, {metalness:.9, roughness:.2});
   [-2.6, 2.6].forEach(hx => { const h = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .5, 16), hingeM); h.rotation.z = Math.PI / 2; h.position.set(hx, 1.2, -2.8); scene.add(h); });
-  // herrajes frontales y perillas
   [-2.2, 2.2].forEach(fx => { const l = new THREE.Mesh(new THREE.BoxGeometry(.5, .35, .12), hingeM); l.position.set(fx, 1.0, 2.82); scene.add(l); });
   [2.2, 3.0].forEach(kx => { const k = new THREE.Mesh(new THREE.CylinderGeometry(.18, .2, .2, 24), hingeM); k.position.set(kx, deckTop + .1, 2.1); scene.add(k); });
-  // plato + vinilo
   const C = {x:-.5, z:.3};
   const sp = makeSpin(C.x, C.z, deckTop, 2.0, 'vintage');
   refs.spin = sp.g;
@@ -684,7 +579,6 @@ function buildModern(){
   const C = {x:-.9, z:.2};
   const sp = makeSpin(C.x, C.z, deckTop, 2.3, 'modern');
   refs.spin = sp.g;
-  // botones Play / Cue (esquina inferior izquierda)
   const mkBtn = (x, z, color) => {
     const mt = M(color, {emissive:color, emissiveIntensity:.2, roughness:.3});
     const b = new THREE.Mesh(new THREE.CylinderGeometry(.28, .3, .12, 32), mt); b.position.set(x, deckTop + .06, z); scene.add(b);
@@ -695,12 +589,10 @@ function buildModern(){
   refs.cueMat = mkBtn(-2.7, 2.3, 0xffa000);
   const l1 = labelPlane('PLAY', .8, .22); l1.position.set(-3.4, deckTop + .005, 2.78); scene.add(l1);
   const l2 = labelPlane('CUE', .8, .22); l2.position.set(-2.7, deckTop + .005, 2.78); scene.add(l2);
-  // 33 / 45
   [[2.5,'33'],[3.2,'45']].forEach(a => {
     const b = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .08, 24), M(0x8a8f98, {metalness:.8, roughness:.3})); b.position.set(a[0], deckTop + .04, 2.3); scene.add(b);
     const l = labelPlane(a[1], .5, .16); l.position.set(a[0], deckTop + .005, 2.7); scene.add(l);
   });
-  // fader de pitch (derecha)
   const slot = new THREE.Mesh(new THREE.BoxGeometry(.3, .02, 3.2), M(0x050505)); slot.position.set(3.35, deckTop + .01, .3); scene.add(slot);
   const knob = new THREE.Mesh(new THREE.BoxGeometry(.55, .28, .3), M(0xe2e4e8, {metalness:.8, roughness:.25})); knob.position.set(3.35, deckTop + .15, .3); scene.add(knob);
   const line = new THREE.Mesh(new THREE.BoxGeometry(.56, .02, .04), M(0xff2d78, {emissive:0xff2d78, emissiveIntensity:.8})); line.position.set(3.35, deckTop + .295, .3); scene.add(line);
@@ -738,14 +630,11 @@ function buildScene(){
   const spot = new THREE.SpotLight(0xfff0f5, 1.1, 40, .5, .7, 1); spot.position.set(0, 15, 3); spot.target.position.set(0, 1, 0);
   scene.add(spot); scene.add(spot.target);
   refs.pink = pink;
-  // piso circular con desvanecido
   const floor = new THREE.Mesh(new THREE.CircleGeometry(26, 96), M(0x050508, {roughness:1, metalness:0, envMapIntensity:.05, alphaMap:floorAlpha, transparent:true}));
   floor.rotation.x = -Math.PI / 2; floor.userData.floor = true; scene.add(floor);
-  // halo rosa con anillos
   const glow = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), new THREE.MeshBasicMaterial({map:glowTex, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, opacity:.4}));
   glow.rotation.x = -Math.PI / 2; glow.position.y = .012; glow.userData.noShadow = true; scene.add(glow);
   refs.glow = glow;
-  // ecualizador en anillo (reacciona cuando suena)
   const NB = 72; refs.bars = [];
   const barGeo = new THREE.BoxGeometry(.24, 1, .24); barGeo.translate(0, .5, 0);
   for(let i = 0; i < NB; i++){
@@ -755,7 +644,6 @@ function buildScene(){
     b.position.set(Math.cos(a) * 8.4, 0, Math.sin(a) * 8.4); b.scale.y = .12; b.userData.noShadow = true;
     scene.add(b); refs.bars.push(b);
   }
-  // partículas flotantes
   const NP = 180, pp = new Float32Array(NP * 3);
   for(let i = 0; i < NP; i++){ pp[i * 3] = (Math.random() - .5) * 30; pp[i * 3 + 1] = Math.random() * 11; pp[i * 3 + 2] = (Math.random() - .5) * 30; }
   const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pp, 3));
@@ -765,6 +653,71 @@ function buildScene(){
   scene.traverse(o => { if(o.isMesh && !o.userData.floor && !o.userData.noShadow){ o.castShadow = true; o.receiveShadow = true; } else if(o.userData.floor){ o.receiveShadow = true; } });
 }
 
+/* ============ CONTROLES DE CÁMARA (WASD + MOUSE) ============ */
+const keys = { w: false, a: false, s: false, d: false, q: false, e: false };
+let isDragging = false;
+let prevMouse = { x: 0, y: 0 };
+
+window.addEventListener('keydown', ev => {
+  const k = ev.key.toLowerCase();
+  if(keys.hasOwnProperty(k)) keys[k] = true;
+});
+window.addEventListener('keyup', ev => {
+  const k = ev.key.toLowerCase();
+  if(keys.hasOwnProperty(k)) keys[k] = false;
+});
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+canvas.addEventListener('pointerdown', e => {
+  if(e.button === 0 || e.button === 2 || e.pointerType === 'touch'){
+    isDragging = true;
+    prevMouse = { x: e.clientX, y: e.clientY };
+    canvas.setPointerCapture(e.pointerId);
+  }
+});
+canvas.addEventListener('pointermove', e => {
+  if(!isDragging) return;
+  const dx = e.clientX - prevMouse.x;
+  const dy = e.clientY - prevMouse.y;
+  prevMouse = { x: e.clientX, y: e.clientY };
+  orbit.theta -= dx * 0.005;
+  orbit.phi = clampN(orbit.phi - dy * 0.005, .01, Math.PI - .01);
+});
+const endPtr = () => { isDragging = false; };
+canvas.addEventListener('pointerup', endPtr);
+canvas.addEventListener('pointercancel', endPtr);
+canvas.addEventListener('pointerleave', endPtr);
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  orbit.r = clampN(orbit.r * (1 + e.deltaY * .001), 3, 30);
+}, {passive:false});
+
+const ptrs = new Map();
+const twoDist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+let pinchD = 0;
+canvas.addEventListener('touchstart', e => {
+  if(e.touches.length === 2){
+    isDragging = false;
+    ptrs.clear();
+    ptrs.set('1', { x: e.touches[0].clientX, y: e.touches[0].clientY });
+    ptrs.set('2', { x: e.touches[1].clientX, y: e.touches[1].clientY });
+    pinchD = twoDist();
+  }
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  if(e.touches.length === 2){
+    e.preventDefault();
+    ptrs.set('1', { x: e.touches[0].clientX, y: e.touches[0].clientY });
+    ptrs.set('2', { x: e.touches[1].clientX, y: e.touches[1].clientY });
+    const d = twoDist();
+    if(pinchD && d) orbit.r = clampN(orbit.r * pinchD / d, 3, 30);
+    pinchD = d;
+  }
+}, {passive:false});
+canvas.addEventListener('touchend', () => { ptrs.clear(); pinchD = 0; });
+
 /* ============ LOOP ============ */
 const clock = new THREE.Clock();
 let spinVel = 0, lvl = 0;
@@ -772,11 +725,24 @@ const SPIN = 3.2;
 function tick(){
   requestAnimationFrame(tick);
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
-  camera.position.lerp(orbitPos(camGoal), 1 - Math.pow(.002, dt));
+
+  // --- MOVIMIENTO WASD ---
+  const speed = 8 * dt;
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+  const up = new THREE.Vector3(0, 1, 0);
+
+  if(keys.w){ camTarget.addScaledVector(forward, speed); }
+  if(keys.s){ camTarget.addScaledVector(forward, -speed); }
+  if(keys.a){ camTarget.addScaledVector(right, -speed); }
+  if(keys.d){ camTarget.addScaledVector(right, speed); }
+  if(keys.q){ camTarget.addScaledVector(up, speed); }
+  if(keys.e){ camTarget.addScaledVector(up, -speed); }
+
+  camera.position.copy(orbitPos(camGoal));
   camera.lookAt(camTarget);
 
   if(refs.spin && refs.arm){
-    // SOLO se anima si YouTube reporta PLAYING; si no, el disco frena y el brazo vuelve al reposo
     spinVel += ((playing ? SPIN : 0) - spinVel) * Math.min(1, dt * (playing ? 1.6 : 2.2));
     if(spinVel < .002 && !playing) spinVel = 0;
     refs.spin.rotation.y -= spinVel * dt;
@@ -799,7 +765,6 @@ function tick(){
     if(refs.cueMat) refs.cueMat.emissiveIntensity = playing ? .15 : .55;
   }
 
-  // Ambiente reactivo: ecualizador, halo, luz y partículas
   lvl += ((playing ? 1 : 0) - lvl) * Math.min(1, dt * 3);
   const beat = Math.pow(Math.abs(Math.sin(t * 5.9)), 6) * lvl;
   if(refs.bars) refs.bars.forEach((b, i) => {
@@ -822,7 +787,6 @@ function tick(){
 }
 
 /* ===== ANDROMEDDA · MODELOS EXTRA ===== */
-/* Tipografías para los logotipos de los modelos */
 {
   const lk = document.createElement('link');
   lk.rel = 'stylesheet';
@@ -832,7 +796,7 @@ function tick(){
     .then(() => buildScene()).catch(() => {});
 }
 
-const MALETA = [['Celeste',0x3fb6c9],['Rojo',0xc4202b],['Rosa',0xe0359a],['Florcita',0x5a189a],['Mostaza',0xe0a82e],['Verde',0x1f5a4a],['Marrón',0x7a2e22]];
+const MALETA = [['Celeste',0x3fb6c9],['Rojo',0xc4202b],['Rosa',0xe0359a],['Violeta',0x5a189a],['Mostaza',0xe0a82e],['Verde',0x1f5a4a],['Marrón',0x7a2e22]];
 const MIN = [['Negro',0x17181b],['Blanco',0xe8eaee]];
 const MODELS = [
   ['vintage','Retro 70s','v'],['maleta','Maleta','v'],['consola','Consola','v'],['gramofono','Gramófono','v'],['hifi','Hi-Fi','v'],
@@ -892,7 +856,8 @@ function buildMaleta(){
   Bx(7, 1.3, 5.4, body, 0, .65, 0);
   Bx(6.6, .06, 5, M(0x141417, {roughness:.5}), 0, 1.33, 0);
   const deckTop = 1.36;
-  const L = tiltLid(7, 5.4, 1.3, -2.7, body, M(0xf3efe6, {roughness:.9, metalness:0}), -1.75, .18);
+  // Pana roja con textura
+  const L = tiltLid(7, 5.4, 1.3, -2.7, body, M(0xffffff, {map: panaTex('#d11224'), roughness:.95, metalness:0}), -1.75, .18);
   const b = brand('ANDROMEDDA', '"Lobster", cursive', '#2a2a30', 4.6, 1.0);
   b.rotation.x = Math.PI / 2; b.position.set(0, -.02, 2.8); L.add(b);
   const g = grillTex('#2c2414', '#120e06', 3, 2);
@@ -911,7 +876,8 @@ function buildConsola(){
   Bx(7.8, 2.2, 5.4, wood, 0, 1.1, 0);
   Bx(7.2, .06, 5, M(0x1a1a1d), 0, 2.23, 0);
   const deckTop = 2.26;
-  tiltLid(7.8, 5.4, 2.2, -2.7, wood, M(0x4a2a12, {roughness:.8}), -1.8, .18);
+  // Pana roja con textura
+  tiltLid(7.8, 5.4, 2.2, -2.7, wood, M(0xffffff, {map: panaTex('#d11224'), roughness:.95, metalness:0}), -1.8, .18);
   const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
   const x = c.getContext('2d');
   x.fillStyle = '#6b6253'; x.fillRect(0, 0, 1024, 512);
@@ -1062,7 +1028,6 @@ buildVintage = buildModern = () => BUILDERS[model]();
     skinLbl.textContent = skins ? skins[skinIdx] : 'No disponible';
   }
 
-  // Cada clic recorre los nueve modelos sin ocupar espacio dentro del escenario.
   modelBtn.addEventListener('click', () => {
     const currentIndex = MODELS.findIndex(item => item[0] === model);
     const nextIndex = (currentIndex + 1) % MODELS.length;
@@ -1072,7 +1037,6 @@ buildVintage = buildModern = () => BUILDERS[model]();
     syncSelectors();
   });
 
-  // Cambia el acabado/color cuando el modelo seleccionado admite variantes.
   skinBtn.addEventListener('click', () => {
     const skins = SK[model];
     if(!skins) return;
@@ -1101,32 +1065,7 @@ document.getElementById('btnCam').addEventListener('click', () => {
   Object.assign(orbit, DEF[viewMode]);
 });
 
-/* Cámara táctil/mouse: 1 dedo orbita, pellizco o rueda hacen zoom */
-const ptrs = new Map(); let pinchD = 0;
-const twoDist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
-canvas.addEventListener('pointerdown', e => {
-  canvas.setPointerCapture(e.pointerId);
-  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
-  if(ptrs.size === 2) pinchD = twoDist();
-});
-canvas.addEventListener('pointermove', e => {
-  const p = ptrs.get(e.pointerId); if(!p) return;
-  const dx = e.clientX - p.x, dy = e.clientY - p.y;
-  p.x = e.clientX; p.y = e.clientY;
-  if(ptrs.size === 1){
-    orbit.theta -= dx * .008;
-    orbit.phi = clampN(orbit.phi - dy * .008, .01, 1.45);
-  } else if(ptrs.size === 2){
-    const d = twoDist();
-    if(pinchD && d) orbit.r = clampN(orbit.r * pinchD / d, 7, 26);
-    pinchD = d;
-  }
-});
-const endPtr = e => { ptrs.delete(e.pointerId); if(ptrs.size < 2) pinchD = 0; };
-canvas.addEventListener('pointerup', endPtr);
-canvas.addEventListener('pointercancel', endPtr);
-canvas.addEventListener('wheel', e => { e.preventDefault(); orbit.r = clampN(orbit.r * (1 + e.deltaY * .001), 7, 26); }, {passive:false});
-// Permite sumar una canción individual o una playlist pegando su enlace.
+/* Permite sumar una canción individual o una playlist pegando su enlace. */
 document.getElementById('addf').addEventListener('submit', async e => {
   e.preventDefault();
   const inp = document.getElementById('link');
@@ -1147,7 +1086,6 @@ document.getElementById('addf').addEventListener('submit', async e => {
 buildScene();
 renderShelf();
 tick();
-// Completa el título de los discos agregados por ID sin metadata
 discs.filter(d => d.auto).forEach(async d => {
   try {
     const r = await fetch('https://noembed.com/embed?url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + d.id));
