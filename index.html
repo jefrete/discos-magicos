@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jukebox 3D</title>
+<title>Jukebox 3D · ANDROMEDDA</title>
 <style>
 :root{--bg:#0a0a0f;--panel:#13131c;--line:#2a2a3a;--neon:#ff2d78;--neon2:#ff5c8a;--txt:#eceaf2;--mut:#8b8aa0}
 *{box-sizing:border-box;margin:0}
-body{background:radial-gradient(1200px 600px at 50% -10%,#2a0f1e,var(--bg));color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:16px;display:flex;flex-direction:column;gap:14px}
-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#2a0f1e,var(--bg));color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;padding:0 16px 16px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:start;gap:12px}
 h1{font-size:26px;letter-spacing:.18em;font-weight:800}
 h1 span{color:var(--neon);text-shadow:0 0 14px var(--neon),0 0 32px rgba(255,45,120,.6)}
 h2{font-size:14px;letter-spacing:.2em;color:var(--mut);text-transform:uppercase;font-weight:600}
@@ -17,9 +17,24 @@ button{font:inherit;cursor:pointer}
 .btn{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;transition:.18s}
 .btn:hover{border-color:var(--neon);box-shadow:0 0 0 1px var(--neon),0 0 18px rgba(255,45,120,.35);color:#fff}
 .btn small{color:var(--neon2);font-weight:500;margin-left:4px}
+
+.hero{
+  width:100vw;
+  height:clamp(105px, 17vw, 210px);
+  min-height:105px;
+  margin:0 0 0 calc(50% - 50vw);
+  border:0;
+  border-radius:0;
+  overflow:hidden;
+  background:#17131b url('hero.jpg') center center / cover no-repeat;
+  box-shadow:none;
+  flex-shrink:0;
+}
 .top{display:grid;grid-template-columns:1fr 1fr;gap:14px;height:clamp(360px,58vh,660px)}
 #stage,#ytwrap{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#07070b;min-height:0}
 #stage{box-shadow:0 0 40px rgba(255,45,120,.08) inset}
+.btn:disabled{opacity:.35;filter:grayscale(1);cursor:not-allowed}
+.btn:disabled:hover{border-color:var(--line);box-shadow:none;color:var(--txt)}
 #stage::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 50%,rgba(0,0,0,.6))}
 @keyframes flick{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.55}94%{opacity:1}96%{opacity:.7}97%{opacity:1}}
 h1 span{animation:flick 6s infinite}
@@ -48,11 +63,14 @@ input[type=text]:focus{border-color:var(--neon)}
 </style>
 </head>
 <body>
+<!-- BANNER SUPERIOR A SANGRE: ocupa todo el ancho y llega hasta el borde superior -->
+<section class="hero" role="img" aria-label="Banner principal de Jukebox 3D"></section>
+
 <header>
   <h1>JUKEBOX <span>3D</span></h1>
   <div class="bar">
     <button class="btn" id="btnCam">Cámara: <small id="camLbl">3D</small></button>
-    <button class="btn" id="btnModel">Modelo: <small id="modelLbl">Vintage</small></button>
+    <button class="btn" id="btnModel">Modelo: <small id="modelLbl">Retro 70s</small></button>
     <button class="btn" id="btnSkin">Diseño: Cambiar Skin <small id="skinLbl">Celeste</small></button>
   </div>
 </header>
@@ -86,26 +104,30 @@ input[type=text]:focus{border-color:var(--neon)}
   Para agregar una canción individual:
   {type:'video', id:'ID_DEL_VIDEO', title:'Nombre de la canción', artist:'Artista'}
 
-  Para agregar una playlist:
-  {type:'playlist', id:'ID_DE_LA_PLAYLIST', title:'Nombre de la lista', artist:'Artista o descripción'}
+  Para agregar una playlist, pegá la URL completa o el ID:
+  {type:'playlist', id:'https://www.youtube.com/playlist?list=ID_DE_LA_PLAYLIST', title:'Nombre de la lista', artist:'Artista o descripción'}
 
   IMPORTANTE:
-  - El ID de un video es el código de 11 caracteres que aparece en su URL.
-  - El ID de una playlist aparece después de list= en su URL.
+  - En id podés pegar la URL completa de YouTube o solamente el ID.
+  - El reproductor extrae automáticamente el ID desde el parámetro list=.
   - También podés agregar canciones y playlists desde el campo de la página,
     pegando directamente el enlace de YouTube.
+  - Para el banner superior, subí tu imagen al repositorio como hero.jpg.
 */
 const discs = [
   // Video individual que compartiste:
   //{type:'video', id:'-RNbCW8yCpI', title:'Mario Neta', artist:'El Cuarteto de Nos'},
 
-  // Playlist / álbum: usa la carátula propia guardada en la carpeta covers.
-  {type:'playlist', id:'OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA', title:'Puertas', artist:'El Cuarteto de Nos', cover:'covers/puertas-vintage.png'},
-
   // Playlist / álbum Jueves: ID limpio, sin URL, espacios ni parámetros extra.
-  {type:'playlist', id:'OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo', title:'Jueves', artist:'El Cuarteto de Nos', cover:'covers/jueves-vintage.png'},
-
-  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kDzZEIv2el62KiJVm2AChWlH8WNUAr1Xw&si=709u9yJLF7yA8D7z', title:'Lamina Once', artist:'El Cuarteto de Nos', cover:'covers/lamina-vintage.jpg'},
+  //{type:'playlist', id:'url', title:'', artist:'', cover:'covers/raro-vintage.png'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_nkEIaphrM_U5JNFcxXq88usvBgLEiag5E&si=njG5m3aTAkqt95JE', title:'Raro', artist:'El Cuarteto de Nos', cover:'covers/raro-vintage.webp'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_lyCNeOpAQznJFIoCehTJqwgNF5gwa5RHU&si=uQepf1td2d6hni0l', title:'Bipolar', artist:'El Cuarteto de Nos', cover:'covers/bipolar-vintage.webp'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kygEpxzZ-hsVK-6XtONLL1hUnInI1l8Vg&si=pPwT4K6wKvx7JJNe', title:'Porfiado', artist:'El Cuarteto de Nos', cover:'covers/porfiado-vintage.webp'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kTVMQRdC_agDPMR9iXnqaB-Z8vRCJXKjU&si=rsVfbhDtBJvhha8b', title:'Habla tu espejo', artist:'El Cuarteto de Nos', cover:'covers/habla-vintage.webp'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_lSm1uzak9h6ch0cuF0v71-Eu9SSZBR-ao&si=gNHTovZTBFQ5B2CD', title:'Apocalipsis Zombie', artist:'El Cuarteto de Nos', cover:'covers/apocalipsis-vintage.webp'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_nESi36IUaDu6wauyiYxEG0dM-MqMF-MKo&si=mWXS8rkmKBFMce12', title:'Jueves', artist:'El Cuarteto de Nos', cover:'covers/jueves-vintage.webp'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kDzZEIv2el62KiJVm2AChWlH8WNUAr1Xw&si=2228JXj40mHa_9Ih', title:'Lamina Once', artist:'El Cuarteto de Nos', cover:'covers/lamina-vintage.webp'},
+  {type:'playlist', id:'https://youtube.com/playlist?list=OLAK5uy_kKYEjwjQ8NnBE0eJZppdSSKiuxbIE4PnA&si=HIYjydJbZV3tquAd', title:'Puertas', artist:'El Cuarteto de Nos', cover:'covers/puertas-vintage.webp'},
 
   
   // EJEMPLOS PARA AGREGAR MÁS CONTENIDO (reemplazá los datos):
@@ -202,16 +224,50 @@ function checkPlaylistAdvance(ended = false){
   }, 900);
 }
 
-function loadInPlayer(d){
+// Cada carga recibe un token: si el usuario cambia de disco mientras tanto,
+// las cargas y verificaciones anteriores se descartan.
+let loadToken = 0;
+function loadInPlayer(d, retry = 0){
   if(!player || !player.loadVideoById){ pending = d; return; }
   clearPlaylistAdvance();
   playing = false;
 
-  if(d.type === 'video'){
-    player.loadVideoById({videoId:d.id, startSeconds:0});
-  } else {
-    player.loadPlaylist({list:d.id, listType:'playlist', index:0, startSeconds:0});
+  // Acepta tanto la URL completa de YouTube como el ID limpio.
+  const parsed = parseYT(d.id);
+  if(!parsed || parsed.type !== d.type){
+    setNow('⚠️', 'No se pudo reconocer el enlace de YouTube.');
+    return;
   }
+
+  const token = ++loadToken;
+  try { player.stopVideo(); } catch(e){}
+
+  // Pequeña pausa para que el reproductor suelte la lista anterior.
+  setTimeout(() => {
+    if(token !== loadToken) return;
+
+    if(d.type === 'video'){
+      player.loadVideoById({videoId:parsed.id, startSeconds:0});
+    } else {
+      player.loadPlaylist({
+        list:parsed.id,
+        listType:'playlist',
+        index:0,
+        startSeconds:0
+      });
+    }
+
+    // Verificación: si sigue cargada la lista/video anterior, reintenta (máx. 2 veces).
+    setTimeout(() => {
+      if(token !== loadToken || retry >= 2) return;
+      let url = '';
+      try { url = player.getVideoUrl() || ''; } catch(e){ return; }
+      const wrong = d.type === 'playlist'
+        ? (() => { const m = url.match(/[?&]list=([A-Za-z0-9_-]+)/); return m && m[1] !== parsed.id; })()
+        : (url && !url.includes(parsed.id));
+      if(wrong) loadInPlayer(d, retry + 1);
+    }, 2000);
+  }, 120);
 }
 window.onYouTubeIframeAPIReady = () => {
   player = new YT.Player('yt', {
@@ -755,15 +811,287 @@ function tick(){
   renderer.render(scene, camera);
 }
 
+/* ===== ANDROMEDDA · MODELOS EXTRA ===== */
+/* Tipografías para los logotipos de los modelos */
+{
+  const lk = document.createElement('link');
+  lk.rel = 'stylesheet';
+  lk.href = 'https://fonts.googleapis.com/css2?family=Shrikhand&family=Lobster&family=Rye&family=Michroma&family=Syncopate:wght@700&family=Monoton&family=Cinzel+Decorative:wght@700&family=Audiowide&family=Bungee&display=swap';
+  document.head.appendChild(lk);
+  lk.onload = () => Promise.all(['40px Shrikhand','40px Lobster','40px Rye','40px Michroma','700 40px Syncopate','40px Monoton','700 40px "Cinzel Decorative"','40px Audiowide','40px Bungee'].map(f => document.fonts.load(f)))
+    .then(() => buildScene()).catch(() => {});
+}
+
+const MALETA = [['Celeste',0x3fb6c9],['Rojo',0xc4202b],['Rosa',0xe0359a],['Lavanda',0xb59ae0],['Mostaza',0xe0a82e],['Verde',0x1f5a4a],['Marrón',0x7a2e22]];
+const MIN = [['Negro',0x17181b],['Blanco',0xe8eaee]];
+const MODELS = [
+  ['vintage','Retro 70s','v'],['maleta','Maleta','v'],['consola','Consola','v'],['gramofono','Gramófono','v'],['hifi','Hi-Fi','v'],
+  ['modern','DJ','m'],['minimal','Minimal','m'],['nogal','Nogal','m'],['bocinas','Bocinas','m']
+];
+const SK = {vintage:SKINS, maleta:MALETA.map(a => a[0]), minimal:MIN.map(a => a[0])};
+
+function brand(text, fam, color, w, h, o){
+  o = o || {};
+  const cw = 1024, ch = Math.round(cw * h / w), c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  const x = c.getContext('2d'); x.textAlign = 'center'; x.textBaseline = 'middle';
+  let fs = ch * .78, ls = (o.ls || 0) * fs;
+  const set = () => { x.font = `${o.w || ''} ${fs}px ${fam}`; if('letterSpacing' in x) x.letterSpacing = ls + 'px'; };
+  set();
+  const mw = x.measureText(text).width;
+  if(mw > cw * .94){ const k = cw * .94 / mw; fs *= k; ls *= k; set(); }
+  if(o.shadow){ x.shadowColor = o.shadow; x.shadowBlur = ch * .15; }
+  if(o.stroke){ x.strokeStyle = o.stroke; x.lineWidth = ch * .05; x.strokeText(text, cw / 2, ch / 2); }
+  x.fillStyle = color; x.fillText(text, cw / 2, ch / 2);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({map:cvTex(c), transparent:true, depthWrite:false}));
+  m.userData.noShadow = true;
+  return m;
+}
+function woodTex(base, dark){
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'); x.fillStyle = base; x.fillRect(0, 0, 256, 256);
+  for(let i = 0; i < 90; i++){
+    x.strokeStyle = `rgba(${dark},${Math.random() * .25})`; x.lineWidth = 1 + Math.random() * 2;
+    const px = Math.random() * 256; x.beginPath(); x.moveTo(px, 0); x.bezierCurveTo(px + 14, 80, px - 14, 170, px + 6, 256); x.stroke();
+  }
+  return cvTex(c);
+}
+function grillTex(bg, dot, rx, ry){
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = bg; x.fillRect(0, 0, 64, 64); x.fillStyle = dot;
+  for(let i = 4; i < 64; i += 8) for(let j = 4; j < 64; j += 8){ x.beginPath(); x.arc(i, j, 2.2, 0, 7); x.fill(); }
+  const t = cvTex(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); return t;
+}
+const Bx = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); scene.add(m); return m; };
+const Cy = (r, h, mat, x, y, z, front) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 20), mat); m.position.set(x, y, z); if(front) m.rotation.x = Math.PI / 2; scene.add(m); return m; };
+const Pl = (w, h, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); m.position.set(x, y, z); m.userData.noShadow = true; scene.add(m); return m; };
+function tiltLid(w, d, y, zb, mat, inner, tilt, t){
+  const p = new THREE.Group(); p.position.set(0, y, zb); p.rotation.x = tilt; scene.add(p);
+  const l = new THREE.Mesh(new THREE.BoxGeometry(w, t, d), mat); l.position.set(0, t / 2, d / 2);
+  if(mat.transparent) l.userData.noShadow = true;
+  p.add(l);
+  if(inner){ const i = new THREE.Mesh(new THREE.PlaneGeometry(w - .3, d - .3), inner); i.rotation.x = Math.PI / 2; i.position.set(0, -.012, d / 2); p.add(i); }
+  return p;
+}
+const glassMat = () => new THREE.MeshStandardMaterial({color:0xdfe8ff, transparent:true, opacity:.16, roughness:.05, metalness:.1, envMapIntensity:1.5, depthWrite:false});
+
+/* VINTAGE · Maleta */
+function buildMaleta(){
+  const col = MALETA[skinIdx][1];
+  const body = M(col, {roughness:.8, metalness:0}); refs.skinMat = body;
+  const gold = M(0xc9a24a, {metalness:.9, roughness:.3});
+  Bx(7, 1.3, 5.4, body, 0, .65, 0);
+  Bx(6.6, .06, 5, M(0x141417, {roughness:.5}), 0, 1.33, 0);
+  const deckTop = 1.36;
+  const L = tiltLid(7, 5.4, 1.3, -2.7, body, M(0xf3efe6, {roughness:.9, metalness:0}), -1.75, .18);
+  const b = brand('ANDROMEDDA', '"Lobster", cursive', '#2a2a30', 4.6, 1.0);
+  b.rotation.x = Math.PI / 2; b.position.set(0, -.02, 2.8); L.add(b);
+  const g = grillTex('#2c2414', '#120e06', 3, 2);
+  [-2.3, 2.3].forEach(x => Pl(1.5, .9, M(0xffffff, {map:g, roughness:.9, metalness:0}), x, .65, 2.705));
+  Bx(2.4, .3, .22, M(0x151518), 0, .7, 2.8);
+  [-1.6, 1.6].forEach(x => Bx(.45, .35, .1, gold, x, 1.0, 2.75));
+  [[-3.5,.15,-2.7],[3.5,.15,-2.7],[-3.5,.15,2.7],[3.5,.15,2.7],[-3.5,1.15,2.7],[3.5,1.15,2.7]].forEach(p => Bx(.3, .3, .3, gold, p[0], p[1], p[2]));
+  [2.3, 3.0].forEach(x => Cy(.17, .2, gold, x, deckTop + .1, 2.0));
+  const C = {x:-.5, z:.3}, sp = makeSpin(C.x, C.z, deckTop, 2.0, 'vintage'); refs.spin = sp.g;
+  mountArm({x:2.7, z:-1.9}, {x:C.x + 1, z:C.z}, 0, 'S', 0x2b2b30, deckTop, sp.recordTop);
+}
+
+/* VINTAGE · Consola de madera con dial de radio */
+function buildConsola(){
+  const wood = M(0xffffff, {map:woodTex('#8a4a22', '30,12,4'), roughness:.55, metalness:0});
+  Bx(7.8, 2.2, 5.4, wood, 0, 1.1, 0);
+  Bx(7.2, .06, 5, M(0x1a1a1d), 0, 2.23, 0);
+  const deckTop = 2.26;
+  tiltLid(7.8, 5.4, 2.2, -2.7, wood, M(0x4a2a12, {roughness:.8}), -1.8, .18);
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+  const x = c.getContext('2d');
+  x.fillStyle = '#6b6253'; x.fillRect(0, 0, 1024, 512);
+  x.fillStyle = '#efe3bf'; x.fillRect(150, 150, 724, 170);
+  x.fillStyle = '#3a2e1c'; for(let i = 0; i <= 40; i++) x.fillRect(170 + i * 17.5, i % 5 ? 250 : 225, 3, i % 5 ? 30 : 55);
+  x.strokeStyle = '#c1272d'; x.lineWidth = 6; x.beginPath(); x.moveTo(560, 150); x.lineTo(560, 320); x.stroke();
+  x.fillStyle = '#2a2418'; x.fillRect(150, 380, 724, 60);
+  x.fillStyle = '#e8c66a'; x.font = '90px "Rye", serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('ANDROMEDDA', 512, 85);
+  Pl(3.6, 1.8, M(0xffffff, {map:cvTex(c), roughness:.5, metalness:.2}), 0, 1.15, 2.71);
+  const g = grillTex('#3a2a14', '#150f06', 3, 3.5);
+  [-2.7, 2.7].forEach(px => Pl(1.4, 1.6, M(0xffffff, {map:g, roughness:.9, metalness:0}), px, 1.1, 2.705));
+  const brass = M(0xc9a24a, {metalness:.9, roughness:.3});
+  [2.6, 3.2].forEach(px => Cy(.17, .2, brass, px, deckTop + .1, 2.1));
+  const C = {x:-.4, z:.2}, sp = makeSpin(C.x, C.z, deckTop, 2.0, 'vintage'); refs.spin = sp.g;
+  mountArm({x:2.8, z:-1.9}, {x:C.x + 1, z:C.z}, 0, 'S', 0xc9a24a, deckTop, sp.recordTop);
+}
+
+/* MODERNO · Minimal con tapa acrílica */
+function buildMinimal(){
+  const body = M(MIN[skinIdx][1], {roughness:.45, metalness:.3}); refs.skinMat = body;
+  const blk = M(0x0c0c0e, {roughness:.6});
+  [[-3.2,-2.4],[3.2,-2.4],[-3.2,2.4],[3.2,2.4]].forEach(p => Cy(.35, .25, blk, p[0], .125, p[1]));
+  Bx(7.6, .8, 5.8, body, 0, .65, 0);
+  const deckTop = 1.05;
+  tiltLid(7.6, 5.8, deckTop, -2.9, glassMat(), null, -1.65, .05);
+  const C = {x:-.6, z:.1}, sp = makeSpin(C.x, C.z, deckTop, 2.45, 'vintage'); refs.spin = sp.g;
+  mountArm({x:3.0, z:-2.0}, {x:C.x + 1, z:C.z}, 0, 'J', 0xc9ccd2, deckTop, sp.recordTop);
+  [2.4, 2.9, 3.4].forEach(px => Cy(.2, .15, blk, px, .65, 2.95, true));
+  const b = brand('ANDROMEDDA', '"Syncopate", sans-serif', '#8b909a', 3.2, .38, {w:'700', ls:.08});
+  b.position.set(-.8, .65, 2.91); scene.add(b);
+}
+
+/* MODERNO · Nogal con frente de parlante */
+function buildNogal(){
+  const wood = M(0xffffff, {map:woodTex('#6b3f20', '25,10,2'), roughness:.5, metalness:0});
+  const blk = M(0xffffff, {map:grillTex('#16161a', '#2b2b32', 12, 1.4), roughness:.9, metalness:0});
+  const dark = M(0x111114, {roughness:.6});
+  [[-3.2,-2.4],[3.2,-2.4],[-3.2,2.4],[3.2,2.4]].forEach(p => Cy(.3, .25, dark, p[0], .125, p[1]));
+  Bx(7.8, .95, 5.8, blk, 0, .725, 0);
+  Bx(7.8, .2, 5.8, wood, 0, 1.3, 0);
+  Bx(7.2, .04, 5.2, M(0x0e0e10, {roughness:.5}), 0, 1.42, 0);
+  const deckTop = 1.44;
+  tiltLid(7.8, 5.8, 1.4, -2.9, glassMat(), null, -1.65, .05);
+  const metal = M(0xc9ccd2, {metalness:.9, roughness:.25});
+  [2.8, 3.4].forEach(px => { Cy(.24, .22, dark, px, deckTop + .11, 2.2); Cy(.27, .04, metal, px, deckTop + .02, 2.2); });
+  const b = brand('ANDROMEDDA', '"Monoton", sans-serif', '#e6c9a0', 3.8, .62, {ls:.03});
+  b.position.set(0, .75, 2.91); scene.add(b);
+  const C = {x:-.7, z:.2}, sp = makeSpin(C.x, C.z, deckTop, 2.3, 'vintage'); refs.spin = sp.g;
+  mountArm({x:3.0, z:-2.1}, {x:C.x + 1, z:C.z}, 0, 'J', 0x26262b, deckTop, sp.recordTop);
+}
+
+/* VINTAGE · Gramófono con corneta */
+function buildGramofono(){
+  const wood = M(0xffffff, {map:woodTex('#7a4220', '30,12,4'), roughness:.5, metalness:0});
+  const gold = M(0xc9a24a, {metalness:.9, roughness:.3, side:THREE.DoubleSide});
+  Bx(4.8, 1.7, 4.8, wood, 0, .85, 0);
+  Bx(4.5, .06, 4.5, M(0x1a1a1d, {roughness:.5}), 0, 1.73, 0);
+  const deckTop = 1.76;
+  const pts = [[.14,0],[.2,.7],[.35,1.3],[.65,1.9],[1.1,2.4],[1.6,2.8],[2.1,3.05]].map(p => new THREE.Vector2(p[0], p[1]));
+  const horn = new THREE.Mesh(new THREE.LatheGeometry(pts, 40), gold);
+  horn.position.set(0, deckTop + .2, -2.0); horn.rotation.x = .3; scene.add(horn);
+  Cy(.2, .5, gold, 0, deckTop + .25, -2.0);
+  const b = brand('ANDROMEDDA', '"Cinzel Decorative", serif', '#e8c66a', 3.6, .6, {w:'700', stroke:'rgba(0,0,0,.4)'});
+  b.position.set(0, .85, 2.41); scene.add(b);
+  const C = {x:-.2, z:.5}, sp = makeSpin(C.x, C.z, deckTop, 1.95, 'vintage'); refs.spin = sp.g;
+  mountArm({x:1.9, z:-1.5}, {x:C.x + 1, z:C.z}, 0, 'S', 0xc9a24a, deckTop, sp.recordTop);
+}
+
+/* VINTAGE · Hi-Fi con parlantes externos, casetera y CD */
+function buildHifi(){
+  const cher = M(0xffffff, {map:woodTex('#5a1d14', '20,5,3'), roughness:.45, metalness:0});
+  Bx(6.4, 1.6, 4.8, cher, 0, .8, 0);
+  Bx(6, .06, 4.4, M(0x141416), 0, 1.63, 0);
+  const deckTop = 1.66;
+  const smoke = new THREE.MeshStandardMaterial({color:0x2a3038, transparent:true, opacity:.35, roughness:.1, metalness:.2, envMapIntensity:1.4, depthWrite:false});
+  tiltLid(6.4, 4.8, 1.6, -2.4, smoke, null, -1.7, .06);
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 256;
+  const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#d9dce1'); g.addColorStop(1, '#9aa0a8'); x.fillStyle = g; x.fillRect(0, 0, 1024, 256);
+  x.fillStyle = '#4a505a'; x.fillRect(40, 30, 300, 120); x.fillRect(690, 30, 290, 120);
+  x.fillStyle = '#2b6cff'; x.fillRect(390, 30, 260, 90);
+  x.fillStyle = '#cfe0ff'; x.font = '60px "Audiowide", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('OPEN', 520, 76);
+  x.fillStyle = '#1c2430'; x.font = '52px "Audiowide", sans-serif'; x.fillText('ANDROMEDDA', 512, 205);
+  Pl(5.8, 1.45, M(0xffffff, {map:cvTex(c), roughness:.4, metalness:.4}), 0, .8, 2.41);
+  const metal = M(0xc9ccd2, {metalness:.9, roughness:.25});
+  [2.3, 2.9].forEach(px => Cy(.17, .2, metal, px, deckTop + .1, 1.9));
+  [-5, 5].forEach(sx => {
+    Bx(1.8, 3.2, 2.2, cher, sx, 1.6, 0);
+    Cy(.86, .06, metal, sx, 1.35, 1.1, true);
+    Cy(.8, .12, M(0x0d0d0f), sx, 1.35, 1.12, true);
+    Cy(.32, .12, M(0x1a1a1d, {metalness:.5}), sx, 2.5, 1.12, true);
+  });
+  const C = {x:-.4, z:.3}, sp = makeSpin(C.x, C.z, deckTop, 2.0, 'vintage'); refs.spin = sp.g;
+  mountArm({x:2.5, z:-1.8}, {x:C.x + 1, z:C.z}, 0, 'S', 0xd6d9de, deckTop, sp.recordTop);
+}
+
+/* MODERNO · Bocinas con rejillas y perilla */
+function buildBocinas(){
+  const wood = M(0xffffff, {map:woodTex('#9a5a2c', '40,18,6'), roughness:.5, metalness:0});
+  const blk = M(0x151517, {roughness:.55}), metal = M(0xc9ccd2, {metalness:.9, roughness:.25});
+  [[-3.5,-2.5],[3.5,-2.5],[-3.5,2.5],[3.5,2.5]].forEach(p => Bx(.7, .35, .7, blk, p[0], .17, p[1]));
+  Bx(7.6, 1.0, 5.6, wood, 0, .7, 0);
+  Bx(7.1, .06, 5.1, blk, 0, 1.21, 0);
+  const deckTop = 1.24;
+  tiltLid(7.6, 5.6, 1.2, -2.8, glassMat(), null, -1.65, .05);
+  const gt = grillTex('#0b0b0c', '#3a3a40', 2, 1);
+  [-2.8, -1.0].forEach(px => { const m = Pl(1.6, .7, M(0xffffff, {map:gt, roughness:.9, metalness:0}), px, deckTop + .005, 2.1); m.rotation.x = -Math.PI / 2; });
+  Cy(.2, .1, M(0xff6a1a, {emissive:0xff4400, emissiveIntensity:.5}), 1.6, deckTop + .05, 2.0);
+  Cy(.5, .3, blk, 3.0, deckTop + .15, 1.7); Cy(.54, .04, metal, 3.0, deckTop + .02, 1.7);
+  const b = brand('ANDROMEDDA', '"Bungee", sans-serif', '#f2c9a0', 4.2, .5, {ls:.02});
+  b.position.set(0, .7, 2.81); scene.add(b);
+  const C = {x:-.9, z:-.4}, sp = makeSpin(C.x, C.z, deckTop, 2.1, 'vintage'); refs.spin = sp.g;
+  mountArm({x:3.0, z:-1.9}, {x:C.x + 1, z:C.z}, 0, 'J', 0x26262b, deckTop, sp.recordTop);
+}
+
+/* Adaptación de los dos modelos originales y selección de todos los modelos */
+const _bv = buildVintage, _bm = buildModern;
+const BUILDERS = {
+  vintage: () => {
+    _bv();
+    const b = brand('ANDROMEDDA', '"Shrikhand", cursive', '#f4f1ea', 3.6, .7, {stroke:'rgba(0,0,0,.45)'});
+    b.position.set(0, .55, 2.81); scene.add(b);
+  },
+  modern: () => {
+    _bm();
+    const b = brand('ANDROMEDDA', '"Michroma", sans-serif', '#ff2d78', 3.8, .4, {shadow:'#ff2d78', ls:.05});
+    b.position.set(0, .47, 3.01); scene.add(b);
+  },
+  maleta: buildMaleta, consola: buildConsola, minimal: buildMinimal, nogal: buildNogal,
+  gramofono: buildGramofono, hifi: buildHifi, bocinas: buildBocinas
+};
+buildVintage = buildModern = () => BUILDERS[model]();
+
+/* Selectores compactos en la barra superior, como en la versión anterior */
+{
+  const modelBtn = document.getElementById('btnModel');
+  const modelLbl = document.getElementById('modelLbl');
+  const skinBtn = document.getElementById('btnSkin');
+  const skinLbl = document.getElementById('skinLbl');
+
+  function syncSelectors(){
+    const selected = MODELS.find(item => item[0] === model);
+    const skins = SK[model];
+
+    modelLbl.textContent = selected ? selected[1] : 'Modelo';
+    skinBtn.disabled = !skins;
+    skinLbl.textContent = skins ? skins[skinIdx] : 'No disponible';
+  }
+
+  // Cada clic recorre los nueve modelos sin ocupar espacio dentro del escenario.
+  modelBtn.addEventListener('click', () => {
+    const currentIndex = MODELS.findIndex(item => item[0] === model);
+    const nextIndex = (currentIndex + 1) % MODELS.length;
+    model = MODELS[nextIndex][0];
+    skinIdx = 0;
+    buildScene();
+    syncSelectors();
+  });
+
+  // Cambia el acabado/color cuando el modelo seleccionado admite variantes.
+  skinBtn.addEventListener('click', () => {
+    const skins = SK[model];
+    if(!skins) return;
+
+    skinIdx = (skinIdx + 1) % skins.length;
+
+    if(model === 'vintage' && refs.skinMat){
+      refs.skinMat.map = getSkin(skinIdx);
+      refs.skinMat.needsUpdate = true;
+    } else if(model === 'maleta' && refs.skinMat){
+      refs.skinMat.color.setHex(MALETA[skinIdx][1]);
+    } else if(model === 'minimal' && refs.skinMat){
+      refs.skinMat.color.setHex(MIN[skinIdx][1]);
+    }
+
+    syncSelectors();
+  });
+
+  syncSelectors();
+}
+
 /* ============ UI ============ */
-const btnSkin = document.getElementById('btnSkin');
 document.getElementById('btnCam').addEventListener('click', () => {
   viewMode = viewMode === 3 ? 2 : 3;
   document.getElementById('camLbl').textContent = viewMode === 3 ? '3D' : '2D';
   Object.assign(orbit, DEF[viewMode]);
 });
 
-/* Control táctil/mouse de cámara: 1 dedo orbita, 2 dedos (pellizco) o rueda hacen zoom */
+/* Cámara táctil/mouse: 1 dedo orbita, pellizco o rueda hacen zoom */
 const ptrs = new Map(); let pinchD = 0;
 const twoDist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
 canvas.addEventListener('pointerdown', e => {
@@ -788,17 +1116,6 @@ const endPtr = e => { ptrs.delete(e.pointerId); if(ptrs.size < 2) pinchD = 0; };
 canvas.addEventListener('pointerup', endPtr);
 canvas.addEventListener('pointercancel', endPtr);
 canvas.addEventListener('wheel', e => { e.preventDefault(); orbit.r = clampN(orbit.r * (1 + e.deltaY * .001), 7, 26); }, {passive:false});
-document.getElementById('btnModel').addEventListener('click', () => {
-  model = model === 'vintage' ? 'modern' : 'vintage';
-  document.getElementById('modelLbl').textContent = model === 'vintage' ? 'Vintage' : 'Moderno';
-  btnSkin.style.display = model === 'vintage' ? '' : 'none';
-  buildScene();
-});
-btnSkin.addEventListener('click', () => {
-  skinIdx = (skinIdx + 1) % SKINS.length;
-  document.getElementById('skinLbl').textContent = SKINS[skinIdx];
-  if(refs.skinMat){ refs.skinMat.map = getSkin(skinIdx); refs.skinMat.needsUpdate = true; }
-});
 // Permite sumar una canción individual o una playlist pegando su enlace.
 document.getElementById('addf').addEventListener('submit', async e => {
   e.preventDefault();
